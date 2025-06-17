@@ -8,18 +8,12 @@ if (isset($_GET['id'])) {
     $conn->begin_transaction();
     
     try {
-        // First, get all transaction details to restore stock
-        $details_query = $conn->prepare("SELECT id_product, qty FROM Transaction_Detail WHERE id_inv = ?");
-        $details_query->bind_param("i", $id);
-        $details_query->execute();
-        $details_result = $details_query->get_result();
-        
-        // Restore stock for each product
-        while ($detail = $details_result->fetch_assoc()) {
-            $restore_stock = $conn->prepare("UPDATE Product SET stok = stok + ? WHERE id_product = ?");
-            $restore_stock->bind_param("ii", $detail['qty'], $detail['id_product']);
-            $restore_stock->execute();
-        }
+        // Get the payment ID from transaction header to delete payment record
+        $payment_query = $conn->prepare("SELECT id_payment FROM Transaction_Header WHERE id_inv = ?");
+        $payment_query->bind_param("i", $id);
+        $payment_query->execute();
+        $payment_result = $payment_query->get_result();
+        $payment_data = $payment_result->fetch_assoc();
         
         // Delete transaction details first (foreign key constraint)
         $delete_details = $conn->prepare("DELETE FROM Transaction_Detail WHERE id_inv = ?");
@@ -31,8 +25,15 @@ if (isset($_GET['id'])) {
         $delete_header->bind_param("i", $id);
         $delete_header->execute();
         
+        // Delete payment record if exists
+        if ($payment_data && $payment_data['id_payment']) {
+            $delete_payment = $conn->prepare("DELETE FROM Payment WHERE id_payment = ?");
+            $delete_payment->bind_param("i", $payment_data['id_payment']);
+            $delete_payment->execute();
+        }
+        
         $conn->commit();
-        echo "<script>alert('Transaksi berhasil dihapus dan stok produk telah dikembalikan!'); window.location.href='transactions.php';</script>";
+        echo "<script>alert('Transaksi berhasil dihapus!'); window.location.href='transactions.php';</script>";
         
     } catch (Exception $e) {
         $conn->rollback();

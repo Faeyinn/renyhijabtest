@@ -6,11 +6,12 @@ $customer = null;
 
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
-    $result = $stmt = $conn->prepare("SELECT * FROM Customer WHERE id_cust = ?");
+    $stmt = $conn->prepare("SELECT * FROM Customer WHERE id_cust = ?");
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $result = $stmt->get_result();
     $customer = $result->fetch_assoc();
+    $stmt->close();
 }
 
 if ($_POST && $customer) {
@@ -45,6 +46,7 @@ if ($_POST && $customer) {
             <a href="products.php">Produk</a>
             <a href="transactions.php">Transaksi</a>
             <a href="customers.php">Customer</a>
+            <a href="categories.php">Kategori</a>
         </nav>
     </header>
     <main>
@@ -59,7 +61,7 @@ if ($_POST && $customer) {
                 <form method="POST">
                     <div class="form-group">
                         <label>ID Customer:</label>
-                        <input type="text" value="<?php echo $customer['id_cust']; ?>" disabled>
+                        <input type="text" value="CUST-<?php echo $customer['id_cust']; ?>" disabled>
                     </div>
                     <div class="form-group">
                         <label for="customer_name">Nama Customer:</label>
