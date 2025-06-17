@@ -3,18 +3,21 @@ include 'db_connection.php';
 
 $message = '';
 
+// Get categories for dropdown
+$categories = $conn->query("SELECT * FROM Category ORDER BY Category");
+
 if ($_POST) {
     $product_name = $_POST['product_name'];
     $cost = $_POST['cost'];
-    $stok = $_POST['stok'];
+    $id_category = $_POST['id_category'];
     
     // Get next ID
     $result = $conn->query("SELECT MAX(id_product) as max_id FROM Product");
     $row = $result->fetch_assoc();
     $next_id = $row['max_id'] + 1;
     
-    $stmt = $conn->prepare("INSERT INTO Product (id_product, product_name, cost, stok) VALUES (?, ?, ?, ?)");
-    $stmt->bind_param("isdi", $next_id, $product_name, $cost, $stok);
+    $stmt = $conn->prepare("INSERT INTO Product (id_product, Product, Cost, id_category) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("isdi", $next_id, $product_name, $cost, $id_category);
     
     if ($stmt->execute()) {
         $message = "Produk berhasil ditambahkan!";
@@ -41,6 +44,7 @@ if ($_POST) {
             <a href="products.php">Produk</a>
             <a href="transactions.php">Transaksi</a>
             <a href="customers.php">Customer</a>
+            <a href="categories.php">Kategori</a>
         </nav>
     </header>
     <main>
@@ -61,8 +65,15 @@ if ($_POST) {
                     <input type="number" id="cost" name="cost" min="0" step="0.01" required>
                 </div>
                 <div class="form-group">
-                    <label for="stok">Stok:</label>
-                    <input type="number" id="stok" name="stok" min="0" required>
+                    <label for="id_category">Kategori:</label>
+                    <select id="id_category" name="id_category" required>
+                        <option value="">Pilih Kategori</option>
+                        <?php while ($category = $categories->fetch_assoc()): ?>
+                            <option value="<?php echo $category['id_category']; ?>">
+                                <?php echo $category['Category']; ?>
+                            </option>
+                        <?php endwhile; ?>
+                    </select>
                 </div>
                 <button type="submit" class="btn">Tambah Produk</button>
                 <a href="products.php" class="btn" style="background-color: #6c757d;">Kembali</a>

@@ -4,12 +4,14 @@ include 'db_connection.php';
 $message = '';
 
 // Get customers and products for dropdowns
-$customers = $conn->query("SELECT * FROM Customer ORDER BY customer_name");
-$products = $conn->query("SELECT * FROM Product ORDER BY product_name");
+$customers = $conn->query("SELECT * FROM Customer ORDER BY Customer");
+$products = $conn->query("SELECT * FROM Product ORDER BY Product");
 
 if ($_POST) {
     $id_cust = $_POST['id_cust'];
     $date_inv = $_POST['date_inv'];
+    $method_payment = $_POST['method_payment'];
+    $payment_date = $_POST['payment_date'];
     $selected_products = $_POST['products'] ?? [];
     $quantities = $_POST['quantities'] ?? [];
     
@@ -30,62 +32,36 @@ if ($_POST) {
         // Get next invoice ID
         $result = $conn->query("SELECT MAX(id_inv) as max_id FROM Transaction_Header");
         $row = $result->fetch_assoc();
-        $next_id = $row['max_id'] + 1;
+        $next_inv_id = $row['max_id'] + 1;
+        
+        // Get next payment ID
+        $result = $conn->query("SELECT MAX(id_payment) as max_id FROM Payment");
+        $row = $result->fetch_assoc();
+        $next_payment_id = $row['max_id'] + 1;
         
         // Start transaction
         $conn->begin_transaction();
         
         try {
-            // First, check stock availability for all products
-            $stock_errors = [];
-            foreach ($valid_products as $item) {
-                $stock_check = $conn->prepare("SELECT product_name, stok FROM Product WHERE id_product = ?");
-                $stock_check->bind_param("i", $item['id']);
-                $stock_check->execute();
-                $product_info = $stock_check->get_result()->fetch_assoc();
-                
-                if (!$product_info) {
-                    $stock_errors[] = "Produk dengan ID {$item['id']} tidak ditemukan";
-                } elseif ($product_info['stok'] < $item['qty']) {
-                    $stock_errors[] = "Stok {$product_info['product_name']} tidak mencukupi (tersedia: {$product_info['stok']}, diminta: {$item['qty']})";
-                }
-            }
-            
-            // If there are stock errors, throw exception
-            if (!empty($stock_errors)) {
-                throw new Exception(implode("; ", $stock_errors));
-            }
+            // Insert payment record
+            $stmt_payment = $conn->prepare("INSERT INTO Payment (id_payment, method_payment, payment_date) VALUES (?, ?, ?)");
+            $stmt_payment->bind_param("iss", $next_payment_id, $method_payment, $payment_date);
+            $stmt_payment->execute();
             
             // Insert transaction header
-            $stmt = $conn->prepare("INSERT INTO Transaction_Header (id_inv, date_inv, id_cust) VALUES (?, ?, ?)");
-            $stmt->bind_param("isi", $next_id, $date_inv, $id_cust);
+            $stmt = $conn->prepare("INSERT INTO Transaction_Header (id_inv, date_inv, id_cust, id_payment) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("isii", $next_inv_id, $date_inv, $id_cust, $next_payment_id);
             $stmt->execute();
             
-            // Insert transaction details and update stock
+            // Insert transaction details
             foreach ($valid_products as $item) {
-                // Insert transaction detail
-                $stmt_detail = $conn->prepare("INSERT INTO Transaction_Detail (id_inv, id_product, qty) VALUES (?, ?, ?)");
-                $stmt_detail->bind_param("iii", $next_id, $item['id'], $item['qty']);
+                $stmt_detail = $conn->prepare("INSERT INTO Transaction_Detail (id_inv, id_product, Qty) VALUES (?, ?, ?)");
+                $stmt_detail->bind_param("iii", $next_inv_id, $item['id'], $item['qty']);
                 $stmt_detail->execute();
-                
-                // Update stock - reduce by quantity sold
-                $stmt_stock = $conn->prepare("UPDATE Product SET stok = stok - ? WHERE id_product = ?");
-                $stmt_stock->bind_param("ii", $item['qty'], $item['id']);
-                $stmt_stock->execute();
-                
-                // Double check that update was successful and stock didn't go negative
-                $verify_stock = $conn->prepare("SELECT stok FROM Product WHERE id_product = ?");
-                $verify_stock->bind_param("i", $item['id']);
-                $verify_stock->execute();
-                $new_stock = $verify_stock->get_result()->fetch_assoc()['stok'];
-                
-                if ($new_stock < 0) {
-                    throw new Exception("Error: Stok menjadi negatif setelah transaksi");
-                }
             }
             
             $conn->commit();
-            $message = "Transaksi berhasil ditambahkan! Stok produk telah diupdate.";
+            $message = "Transaksi berhasil ditambahkan!";
             
         } catch (Exception $e) {
             $conn->rollback();
@@ -111,6 +87,7 @@ if ($_POST) {
             <a href="products.php">Produk</a>
             <a href="transactions.php">Transaksi</a>
             <a href="customers.php">Customer</a>
+            <a href="categories.php">Kategori</a>
         </nav>
     </header>
     <main>
@@ -131,16 +108,33 @@ if ($_POST) {
                         <?php while ($customer = $customers->fetch_assoc()): ?>
                             <option value="<?php echo $customer['id_cust']; ?>" 
                                     <?php echo (isset($_POST['id_cust']) && $_POST['id_cust'] == $customer['id_cust']) ? 'selected' : ''; ?>>
-                                <?php echo $customer['customer_name']; ?>
+                                <?php echo $customer['Customer']; ?>
                             </option>
                         <?php endwhile; ?>
                     </select>
                 </div>
                 
                 <div class="form-group">
-                    <label for="date_inv">Tanggal:</label>
+                    <label for="date_inv">Tanggal Invoice:</label>
                     <input type="date" id="date_inv" name="date_inv" 
                            value="<?php echo isset($_POST['date_inv']) ? $_POST['date_inv'] : date('Y-m-d'); ?>" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="method_payment">Metode Pembayaran:</label>
+                    <select id="method_payment" name="method_payment" required>
+                        <option value="">Pilih Metode</option>
+                        <option value="Cash" <?php echo (isset($_POST['method_payment']) && $_POST['method_payment'] == 'Cash') ? 'selected' : ''; ?>>Cash</option>
+                        <option value="Transfer" <?php echo (isset($_POST['method_payment']) && $_POST['method_payment'] == 'Transfer') ? 'selected' : ''; ?>>Transfer</option>
+                        <option value="Credit Card" <?php echo (isset($_POST['method_payment']) && $_POST['method_payment'] == 'Credit Card') ? 'selected' : ''; ?>>Credit Card</option>
+                        <option value="E-Wallet" <?php echo (isset($_POST['method_payment']) && $_POST['method_payment'] == 'E-Wallet') ? 'selected' : ''; ?>>E-Wallet</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="payment_date">Tanggal Pembayaran:</label>
+                    <input type="date" id="payment_date" name="payment_date" 
+                           value="<?php echo isset($_POST['payment_date']) ? $_POST['payment_date'] : date('Y-m-d'); ?>" required>
                 </div>
                 
                 <h3>Produk</h3>
@@ -158,15 +152,11 @@ if ($_POST) {
                                    <?php echo $is_checked ? 'checked' : ''; ?>
                                    style="margin-right: 10px;">
                             <span style="flex: 1;">
-                                <?php echo $product['product_name']; ?> 
-                                (Rp <?php echo number_format($product['cost'], 0, ',', '.'); ?> - 
-                                <span class="stock-info <?php echo $product['stok'] <= 5 ? 'low-stock' : ''; ?>">
-                                    Stok: <?php echo $product['stok']; ?>
-                                </span>)
+                                <?php echo $product['Product']; ?> 
+                                (Rp <?php echo number_format($product['Cost'], 0, ',', '.'); ?>)
                             </span>
                             <input type="number" name="quantities[]" id="qty_<?php echo $index; ?>" 
-                                   min="1" max="<?php echo $product['stok']; ?>" 
-                                   placeholder="Qty" value="<?php echo $qty_value; ?>"
+                                   min="1" placeholder="Qty" value="<?php echo $qty_value; ?>"
                                    <?php echo !$is_checked ? 'disabled' : ''; ?>
                                    style="width: 80px; margin-left: 10px;">
                         </div>
@@ -208,15 +198,6 @@ if ($_POST) {
         .alert-error {
             background: linear-gradient(135deg, #EF4444, #DC2626) !important;
             color: white;
-        }
-        
-        .low-stock {
-            color: #EF4444;
-            font-weight: bold;
-        }
-        
-        .stock-info {
-            font-weight: 500;
         }
     </style>
 </body>

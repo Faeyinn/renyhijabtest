@@ -9,36 +9,6 @@ include 'db_connection.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Produk - Renyhijab</title>
     <link rel="stylesheet" href="styles.css">
-    <style>
-        .stock-status {
-            padding: 0.25rem 0.5rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        
-        .stock-high {
-            background-color: #D1FAE5;
-            color: #065F46;
-        }
-        
-        .stock-medium {
-            background-color: #FEF3C7;
-            color: #92400E;
-        }
-        
-        .stock-low {
-            background-color: #FEE2E2;
-            color: #991B1B;
-        }
-        
-        .stock-empty {
-            background-color: #F3F4F6;
-            color: #374151;
-            text-decoration: line-through;
-        }
-    </style>
 </head>
 <body>
     <header>
@@ -48,6 +18,7 @@ include 'db_connection.php';
             <a href="products.php">Produk</a>
             <a href="transactions.php">Transaksi</a>
             <a href="customers.php">Customer</a>
+            <a href="categories.php">Kategori</a>
         </nav>
     </header>
     <main>
@@ -58,40 +29,24 @@ include 'db_connection.php';
                     <th>ID</th>
                     <th>Nama Produk</th>
                     <th>Harga</th>
-                    <th>Stok</th>
-                    <th>Status</th>
+                    <th>Kategori</th>
                     <th>Aksi</th>
                 </tr>
             </thead>
             <tbody>
                 <?php
-                $result = $conn->query("SELECT * FROM Product ORDER BY id_product");
+                $result = $conn->query("
+                    SELECT p.*, c.Category 
+                    FROM Product p 
+                    JOIN Category c ON p.id_category = c.id_category 
+                    ORDER BY p.id_product
+                ");
                 while ($row = $result->fetch_assoc()) {
-                    // Determine stock status
-                    $stock = $row['stok'];
-                    $status_class = '';
-                    $status_text = '';
-                    
-                    if ($stock == 0) {
-                        $status_class = 'stock-empty';
-                        $status_text = 'Habis';
-                    } elseif ($stock <= 5) {
-                        $status_class = 'stock-low';
-                        $status_text = 'Stok Rendah';
-                    } elseif ($stock <= 20) {
-                        $status_class = 'stock-medium';
-                        $status_text = 'Stok Sedang';
-                    } else {
-                        $status_class = 'stock-high';
-                        $status_text = 'Stok Baik';
-                    }
-                    
                     echo "<tr>
                             <td>PRD-{$row['id_product']}</td>
-                            <td>{$row['product_name']}</td>
-                            <td>Rp " . number_format($row['cost'], 0, ',', '.') . "</td>
-                            <td>{$row['stok']}</td>
-                            <td><span class='stock-status {$status_class}'>{$status_text}</span></td>
+                            <td>{$row['Product']}</td>
+                            <td>Rp " . number_format($row['Cost'], 0, ',', '.') . "</td>
+                            <td>{$row['Category']}</td>
                             <td class='action-links'>
                                 <a href='edit_product.php?id={$row['id_product']}' class='edit-link'>Edit</a>
                                 <a href='delete_product.php?id={$row['id_product']}' class='delete-link' onclick='return confirm(\"Yakin ingin menghapus produk ini?\")'>Hapus</a>

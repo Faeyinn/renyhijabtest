@@ -7,12 +7,12 @@ include 'db_connection.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer - Renyhijab</title>
+    <title>Kategori - Renyhijab</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header>
-        <h1>Customer Renyhijab</h1>
+        <h1>Kategori Renyhijab</h1>
         <nav>
             <a href="dashboard.php">Dashboard</a>
             <a href="products.php">Produk</a>
@@ -22,40 +22,40 @@ include 'db_connection.php';
         </nav>
     </header>
     <main>
-        <h2>Daftar Customer</h2>
+        <h2>Daftar Kategori</h2>
         <table>
             <thead>
                 <tr>
-                    <th>ID Customer</th>
-                    <th>Nama Customer</th>
-                    <th>Total Transaksi</th>
+                    <th>ID Kategori</th>
+                    <th>Nama Kategori</th>
+                    <th>Jumlah Produk</th>
                     <th>Aksi</th>
                 </tr>
             </thead>
             <tbody>
                 <?php
                 $result = $conn->query("
-                    SELECT c.*, COUNT(th.id_inv) as transaction_count 
-                    FROM Customer c 
-                    LEFT JOIN Transaction_Header th ON c.id_cust = th.id_cust 
-                    GROUP BY c.id_cust 
-                    ORDER BY c.id_cust
+                    SELECT c.*, COUNT(p.id_product) as product_count 
+                    FROM Category c 
+                    LEFT JOIN Product p ON c.id_category = p.id_category 
+                    GROUP BY c.id_category 
+                    ORDER BY c.id_category
                 ");
                 while ($row = $result->fetch_assoc()) {
                     echo "<tr>
-                            <td>CUST-{$row['id_cust']}</td>
-                            <td>{$row['Customer']}</td>
-                            <td>{$row['transaction_count']} transaksi</td>
+                            <td>CAT-{$row['id_category']}</td>
+                            <td>{$row['Category']}</td>
+                            <td>{$row['product_count']} produk</td>
                             <td class='action-links'>
-                                <a href='edit_customer.php?id={$row['id_cust']}' class='edit-link'>Edit</a>
-                                <a href='delete_customer.php?id={$row['id_cust']}' class='delete-link' onclick='return confirm(\"Yakin ingin menghapus customer ini?\")'>Hapus</a>
+                                <a href='edit_category.php?id={$row['id_category']}' class='edit-link'>Edit</a>
+                                <a href='delete_category.php?id={$row['id_category']}' class='delete-link' onclick='return confirm(\"Yakin ingin menghapus kategori ini?\")'>Hapus</a>
                             </td>
                           </tr>";
                 }
                 ?>
             </tbody>
         </table>
-        <a href="add_customer.php" class="btn">Tambah Customer</a>
+        <a href="add_category.php" class="btn">Tambah Kategori</a>
     </main>
 </body>
 </html>

@@ -4,18 +4,18 @@ include 'db_connection.php';
 $message = '';
 
 if ($_POST) {
-    $customer_name = $_POST['customer_name'];
+    $category_name = $_POST['category_name'];
     
     // Get next ID
-    $result = $conn->query("SELECT MAX(id_cust) as max_id FROM Customer");
+    $result = $conn->query("SELECT MAX(id_category) as max_id FROM Category");
     $row = $result->fetch_assoc();
     $next_id = $row['max_id'] + 1;
     
-    $stmt = $conn->prepare("INSERT INTO Customer (id_cust, Customer) VALUES (?, ?)");
-    $stmt->bind_param("is", $next_id, $customer_name);
+    $stmt = $conn->prepare("INSERT INTO Category (id_category, Category) VALUES (?, ?)");
+    $stmt->bind_param("is", $next_id, $category_name);
     
     if ($stmt->execute()) {
-        $message = "Customer berhasil ditambahkan!";
+        $message = "Kategori berhasil ditambahkan!";
     } else {
         $message = "Error: " . $conn->error;
     }
@@ -28,12 +28,12 @@ if ($_POST) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tambah Customer - Renyhijab</title>
+    <title>Tambah Kategori - Renyhijab</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header>
-        <h1>Tambah Customer - Renyhijab</h1>
+        <h1>Tambah Kategori - Renyhijab</h1>
         <nav>
             <a href="dashboard.php">Dashboard</a>
             <a href="products.php">Produk</a>
@@ -43,7 +43,7 @@ if ($_POST) {
         </nav>
     </header>
     <main>
-        <h2>Tambah Customer Baru</h2>
+        <h2>Tambah Kategori Baru</h2>
         
         <?php if ($message): ?>
             <div class="alert"><?php echo $message; ?></div>
@@ -52,11 +52,11 @@ if ($_POST) {
         <div class="form-container">
             <form method="POST">
                 <div class="form-group">
-                    <label for="customer_name">Nama Customer:</label>
-                    <input type="text" id="customer_name" name="customer_name" required>
+                    <label for="category_name">Nama Kategori:</label>
+                    <input type="text" id="category_name" name="category_name" required>
                 </div>
-                <button type="submit" class="btn">Tambah Customer</button>
-                <a href="customers.php" class="btn" style="background-color: #6c757d;">Kembali</a>
+                <button type="submit" class="btn">Tambah Kategori</button>
+                <a href="categories.php" class="btn" style="background-color: #6c757d;">Kembali</a>
             </form>
         </div>
     </main>
