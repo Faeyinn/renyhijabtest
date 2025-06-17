@@ -6,19 +6,22 @@ $customer = null;
 
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
-    $result = $conn->query("SELECT * FROM Customer WHERE id_cust = $id");
+    $result = $stmt = $conn->prepare("SELECT * FROM Customer WHERE id_cust = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
     $customer = $result->fetch_assoc();
 }
 
 if ($_POST && $customer) {
     $customer_name = $_POST['customer_name'];
     
-    $stmt = $conn->prepare("UPDATE Customer SET customer_name = ? WHERE id_cust = ?");
+    $stmt = $conn->prepare("UPDATE Customer SET Customer = ? WHERE id_cust = ?");
     $stmt->bind_param("si", $customer_name, $customer['id_cust']);
     
     if ($stmt->execute()) {
         $message = "Customer berhasil diupdate!";
-        $customer['customer_name'] = $customer_name; // Update display
+        $customer['Customer'] = $customer_name; // Update display
     } else {
         $message = "Error: " . $conn->error;
     }
@@ -61,7 +64,7 @@ if ($_POST && $customer) {
                     <div class="form-group">
                         <label for="customer_name">Nama Customer:</label>
                         <input type="text" id="customer_name" name="customer_name" 
-                               value="<?php echo htmlspecialchars($customer['customer_name']); ?>" required>
+                               value="<?php echo htmlspecialchars($customer['Customer']); ?>" required>
                     </div>
                     <button type="submit" class="btn">Update Customer</button>
                     <a href="customers.php" class="btn" style="background-color: #6c757d;">Kembali</a>

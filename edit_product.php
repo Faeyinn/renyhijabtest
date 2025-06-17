@@ -13,17 +13,15 @@ if (isset($_GET['id'])) {
 if ($_POST && $product) {
     $product_name = $_POST['product_name'];
     $cost = $_POST['cost'];
-    $stok = $_POST['stok'];
     
-    $stmt = $conn->prepare("UPDATE Product SET product_name = ?, cost = ?, stok = ? WHERE id_product = ?");
-    $stmt->bind_param("sdii", $product_name, $cost, $stok, $product['id_product']);
+    $stmt = $conn->prepare("UPDATE Product SET Product = ?, Cost = ? WHERE id_product = ?");
+    $stmt->bind_param("sdi", $product_name, $cost, $product['id_product']);
     
     if ($stmt->execute()) {
         $message = "Produk berhasil diupdate!";
         // Update display values
-        $product['product_name'] = $product_name;
-        $product['cost'] = $cost;
-        $product['stok'] = $stok;
+        $product['Product'] = $product_name;
+        $product['Cost'] = $cost;
     } else {
         $message = "Error: " . $conn->error;
     }

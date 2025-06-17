@@ -4,14 +4,14 @@ include 'db_connection.php';
 $id_inv = $_GET['id'];
 
 // Get transaction header
-$header_query = $conn->prepare("SELECT th.*, c.customer_name FROM Transaction_Header th JOIN Customer c ON th.id_cust = c.id_cust WHERE th.id_inv = ?");
+$header_query = $conn->prepare("SELECT th.*, c.Customer FROM Transaction_Header th JOIN Customer c ON th.id_cust = c.id_cust WHERE th.id_inv = ?");
 $header_query->bind_param("i", $id_inv);
 $header_query->execute();
 $header = $header_query->get_result()->fetch_assoc();
 
 // Get transaction details
 $detail_query = $conn->prepare("
-    SELECT td.*, p.product_name, p.cost, (td.qty * p.cost) as subtotal 
+    SELECT td.*, p.Product, p.Cost, (td.Qty * p.Cost) as subtotal 
     FROM Transaction_Detail td 
     JOIN Product p ON td.id_product = p.id_product 
     WHERE td.id_inv = ?
@@ -48,7 +48,7 @@ $total = 0;
             <h3>Informasi Transaksi</h3>
             <p><strong>ID Invoice:</strong> <?php echo $header['id_inv']; ?></p>
             <p><strong>Tanggal:</strong> <?php echo $header['date_inv']; ?></p>
-            <p><strong>Customer:</strong> <?php echo $header['customer_name']; ?></p>
+            <p><strong>Customer:</strong> <?php echo $header['Customer']; ?></p>
         </div>
         
         <h3>Detail Produk</h3>
@@ -66,11 +66,11 @@ $total = 0;
                 while ($row = $details->fetch_assoc()) {
                     $total += $row['subtotal'];
                     echo "<tr>
-                            <td>{$row['product_name']}</td>
-                            <td>Rp " . number_format($row['cost'], 0, ',', '.') . "</td>
-                            <td>{$row['qty']}</td>
-                            <td>Rp " . number_format($row['subtotal'], 0, ',', '.') . "</td>
-                          </tr>";
+                        <td>{$row['Product']}</td>
+                        <td>Rp " . number_format($row['Cost'], 0, ',', '.') . "</td>
+                        <td>{$row['Qty']}</td>
+                        <td>Rp " . number_format($row['subtotal'], 0, ',', '.') . "</td>
+                    </tr>";
                 }
                 ?>
             </tbody>
